@@ -24,7 +24,7 @@ export function EatersEditor({ eaters }: { eaters: Eater[] }) {
   return (
     <Bench className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-2xl">Who&apos;s eating</h2>
+        <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">Who&apos;s eating</h2>
         <Button size="sm" variant="outline" onClick={() => setEdit({ ...blank })}><Plus size={14} /> Add</Button>
       </div>
       {!eaters.length && <p className="text-sm text-muted">Add yourself (and anyone you cook for) so portions, macros and exclusions are right.</p>}

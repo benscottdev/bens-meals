@@ -9,7 +9,7 @@ type Mode = "signin" | "signup" | "forgot";
 function Login() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/plan";
+  const next = params.get("next") ?? "/";
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,10 +41,13 @@ function Login() {
   }
 
   return (
-    <div className="flex min-h-[85vh] flex-col justify-center">
-      <p className="eyebrow">Ben&apos;s Meals</p>
-      <h1 className="mt-4 text-[2.8rem] leading-[1.05]">Dinner, sorted.<br /><span className="text-muted">Shopping, sorted.</span></h1>
-      <form onSubmit={submit} className="mt-12 space-y-5">
+    <div className="grid min-h-[85vh] items-center gap-x-16 gap-y-12 md:grid-cols-2">
+      <div>
+        <p className="eyebrow">Ben&apos;s Meals</p>
+        <h1 className="mt-4 text-[2.8rem] leading-[1.05] md:text-[4.2rem]">Dinner, sorted.<br /><span className="text-muted">Shopping, sorted.</span></h1>
+      </div>
+      <div className="border-t border-line-strong pt-8 md:border-t-0 md:border-l md:pt-0 md:pl-16">
+      <form onSubmit={submit} className="space-y-5">
         <label className="block space-y-2">
           <span className="eyebrow">Email</span>
           <input type="email" required autoComplete="email" className="field" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -69,6 +72,7 @@ function Login() {
         {mode === "forgot"
           ? <button type="button" className="hover:text-ink" onClick={() => switchTo("signin")}>Back to sign in</button>
           : <button type="button" className="hover:text-ink" onClick={() => switchTo("forgot")}>Forgot password</button>}
+      </div>
       </div>
     </div>
   );

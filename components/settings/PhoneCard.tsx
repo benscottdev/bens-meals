@@ -41,7 +41,7 @@ export function PhoneCard({ calendarToken }: { calendarToken: string }) {
 
   return (
     <Bench className="space-y-4">
-      <h2 className="text-2xl">Phone & reminders</h2>
+      <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">Phone & reminders</h2>
       <p className="text-sm text-muted">
         On your iPhone: open this site in Safari → Share → <em>Add to Home Screen</em>, open it from there, then turn on notifications.
         You&apos;ll get “send to phone” recipes, a nudge to order groceries, defrost reminders and when to start dinner.

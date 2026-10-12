@@ -56,7 +56,7 @@ h1, h2, h3, .font-display {
 
 /* Section: open, separated by a single hairline — no boxes. */
 .bench {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-strong);
 }
 
 /* Outline control. */
@@ -86,6 +86,7 @@ h1, h2, h3, .font-display {
 .brass-rule { height: 1px; background: var(--line); }
 
 .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 6rem); }
+@media (min-width: 768px) { .safe-bottom { padding-bottom: 6rem; } }
 
 @keyframes breathe { 0%, 100% { opacity: 0.35 } 50% { opacity: 1 } }
 .simmer { animation: breathe 1.8s ease-in-out infinite; }

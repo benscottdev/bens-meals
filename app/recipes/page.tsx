@@ -20,7 +20,7 @@ export default async function Recipes({ searchParams }: { searchParams: Promise<
     <>
       <PageTitle sub="The recipe box">Recipes</PageTitle>
       <RecipeTools />
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-8 flex items-center gap-3">
         <div className="steel inline-flex rounded-[2px] p-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
           {[["favourites", "Favourites"], ["all", "All"]].map(([k, l]) => (
             <Link key={k} href={`/recipes?tab=${k}`} className={cn("rounded-[2px] px-4 py-1.5", tab === k ? "bg-ink text-[#f5f2ec]" : "text-muted")}>{l}</Link>
@@ -29,7 +29,7 @@ export default async function Recipes({ searchParams }: { searchParams: Promise<
         <form className="flex-1"><input type="hidden" name="tab" value={tab} /><input name="q" defaultValue={q} placeholder="Search…" className="field !py-2 text-sm" /></form>
       </div>
       {recipes.length ? (
-        <div className="grid gap-3">{recipes.map((r) => <RecipeCard key={r.id} r={r} favourite={favIds.has(r.id)} />)}</div>
+        <div className="grid gap-x-10 gap-y-2 md:grid-cols-2 xl:grid-cols-3">{recipes.map((r) => <RecipeCard key={r.id} r={r} favourite={favIds.has(r.id)} />)}</div>
       ) : (
         <Empty title={tab === "favourites" ? "No favourites yet" : "No recipes yet"}>
           <p className="text-sm text-muted">{tab === "favourites" ? "Tap the heart on any recipe you love." : "Plan a week and they'll appear here."}</p>

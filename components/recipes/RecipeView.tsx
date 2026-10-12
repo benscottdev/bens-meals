@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { deleteRecipe, sendToPhone, setFeedback } from "@/app/actions";
 import { DrumstickRating } from "@/components/kitchen/Drumsticks";
 import { Sheet } from "@/components/kitchen/Sheet";
-import { Bench, Button, Chip, RecipeStats, cn } from "@/components/kitchen/ui";
+import { Button, Chip, RecipeStats, Section, cn } from "@/components/kitchen/ui";
 import { prettyQty } from "@/lib/shopping/aggregate";
 import { MEAL_LABEL, money, type Recipe } from "@/lib/types";
 
@@ -40,102 +40,111 @@ export function RecipeView({ r, fb, initialServes }: { r: Recipe; fb: Feedback; 
   };
 
   return (
-    <article className="space-y-4">
-      <header className="pt-2 text-center">
+    <article>
+      <header className="mb-12">
         <p className="eyebrow">{MEAL_LABEL[r.meal_type]}{r.cuisine ? ` · ${r.cuisine}` : ""}</p>
-        <h1 className="mx-auto mt-2 max-w-lg text-[2.4rem] leading-[1.08]">{r.title}</h1>
-        {r.description && <p className="mx-auto mt-3 max-w-md text-[17px] text-muted">{r.description}</p>}
-        <div className="brass-rule mx-auto my-4 w-32" />
-        <div className="flex flex-col items-center gap-2">
-          <DrumstickRating value={r.difficulty} size={22} showLabel />
+        <h1 className="mt-3 text-[2.4rem] leading-[1.06] md:text-[3.4rem]">{r.title}</h1>
+        {r.description && <p className="mt-4 text-[17px] text-muted md:text-[19px]">{r.description}</p>}
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <DrumstickRating value={r.difficulty} size={20} showLabel />
           <RecipeStats r={r} />
         </div>
-        <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+        <div className="mt-4 flex flex-wrap gap-1.5">
           {r.tags.map((t) => <Chip key={t}>{t}</Chip>)}
           {r.meal_prep_friendly && <Chip tone="olive">meal prep · {r.fridge_days} days</Chip>}
           {r.freezer_friendly && <Chip tone="olive">freezes well</Chip>}
         </div>
       </header>
 
-      <div className="grid grid-cols-4 gap-2">
-        <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={() => { setFav(!fav); start(() => setFeedback(r.id, { favourite: !fav })); }} aria-pressed={fav}>
-          <Heart size={18} strokeWidth={1.4} className={cn(fav && "fill-clay text-clay")} /> {fav ? "Loved" : "Love"}
-        </Button>
-        <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={async () => {
-          const n = await sendToPhone(r.title, `/recipes/${r.id}/cook`, `${r.prep_minutes + r.cook_minutes} min · tap to start cooking`);
-          flash(n ? "Sent to your phone" : "Turn on notifications in Kitchen first");
-        }}><Smartphone size={18} strokeWidth={1.4} /> Phone</Button>
-        <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={share}><Share2 size={18} strokeWidth={1.4} /> Share</Button>
-        <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={async () => setQr(await QRCode.toDataURL(location.href, { margin: 1, width: 280, color: { dark: "#1f3d30", light: "#fffdf8" } }))}>
-          <QrCode size={18} strokeWidth={1.4} /> QR
-        </Button>
-      </div>
-
-      <Link href={`/recipes/${r.id}/cook${serves !== r.servings ? `?serves=${serves}` : ""}`}><Button size="lg" className="w-full"><ChefHat size={18} strokeWidth={1.5} /> Start cooking</Button></Link>
-
-      {r.kcal != null && (
-        <Bench className="grid grid-cols-4 divide-x divide-line p-0 text-center">
-          {[["kcal", r.kcal], ["protein", `${r.protein_g}g`], ["carbs", `${r.carbs_g}g`], ["fat", `${r.fat_g}g`]].map(([l, v]) => (
-            <div key={l} className="py-3"><div className="text-2xl font-light">{v}</div><div className="eyebrow">{l}</div></div>
-          ))}
-        </Bench>
-      )}
-
-      <Bench className="index-card">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-2xl">Ingredients</h2>
-          <div className="steel flex items-center rounded-full">
-            <button className="p-2" onClick={() => setServes(Math.max(1, serves - 1))} aria-label="Fewer serves"><Minus size={14} /></button>
-            <span className="min-w-16 text-center text-sm">{serves} serves</span>
-            <button className="p-2" onClick={() => setServes(serves + 1)} aria-label="More serves"><Plus size={14} /></button>
+      <div className="grid gap-x-16 gap-y-14 lg:grid-cols-12">
+        <div className="space-y-14 lg:col-span-5">
+          <div className="space-y-3">
+            <Link href={`/recipes/${r.id}/cook${serves !== r.servings ? `?serves=${serves}` : ""}`} className="block">
+              <Button size="lg" className="w-full"><ChefHat size={18} strokeWidth={1.5} /> Start cooking</Button>
+            </Link>
+            <div className="grid grid-cols-4 gap-2">
+              <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={() => { setFav(!fav); start(() => setFeedback(r.id, { favourite: !fav })); }} aria-pressed={fav}>
+                <Heart size={18} strokeWidth={1.4} className={cn(fav && "fill-clay text-clay")} /> {fav ? "Loved" : "Love"}
+              </Button>
+              <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={async () => {
+                const n = await sendToPhone(r.title, `/recipes/${r.id}/cook`, `${r.prep_minutes + r.cook_minutes} min · tap to start cooking`);
+                flash(n ? "Sent to your phone" : "Turn on notifications in Settings first");
+              }}><Smartphone size={18} strokeWidth={1.4} /> Phone</Button>
+              <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={share}><Share2 size={18} strokeWidth={1.4} /> Share</Button>
+              <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={async () => setQr(await QRCode.toDataURL(location.href, { margin: 1, width: 280, color: { dark: "#252321", light: "#f5f2ec" } }))}>
+                <QrCode size={18} strokeWidth={1.4} /> QR
+              </Button>
+            </div>
           </div>
-        </div>
-        <ul className="divide-y divide-line">
-          {r.ingredients.map((i, n) => (
-            <li key={n}>
-              <label className="flex cursor-pointer items-baseline gap-3 py-2.5">
-                <input type="checkbox" className="h-4 w-4 translate-y-0.5 accent-[var(--olive)]" checked={have.has(n)}
-                  onChange={() => setHave((s) => { const x = new Set(s); if (x.has(n)) x.delete(n); else x.add(n); return x; })} />
-                <span className={cn("w-20 shrink-0 text-right font-medium tabular-nums", have.has(n) && "text-muted line-through")}>{scaleQty(i.qty, i.unit, factor)}</span>
-                <span className={cn(have.has(n) && "text-muted line-through")}>{i.name}{i.note && <span className="text-muted">, {i.note}</span>}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
-        {r.est_cost != null && <p className="mt-3 text-right text-xs text-muted">≈ {money(r.est_cost * factor)} of ingredients</p>}
-      </Bench>
 
-      <Bench>
-        <h2 className="mb-3 text-2xl">Method</h2>
-        <ol className="space-y-4">
-          {r.steps.map((s, n) => (
-            <li key={n} className="flex gap-4">
-              <span className="w-5 shrink-0 text-[15px] leading-relaxed text-muted tabular-nums">{n + 1}</span>
-              <p className="leading-relaxed">{s.text}{s.minutes ? <span className="ml-1 text-xs text-muted">({s.minutes} min)</span> : null}</p>
-            </li>
-          ))}
-        </ol>
-        {r.source_url && <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-4 block text-sm text-olive underline">Original recipe ↗</a>}
-      </Bench>
+          <Section
+            title="Ingredients"
+            action={
+              <div className="steel flex items-center rounded-full">
+                <button className="p-2" onClick={() => setServes(Math.max(1, serves - 1))} aria-label="Fewer serves"><Minus size={14} /></button>
+                <span className="min-w-16 text-center text-sm">{serves} serves</span>
+                <button className="p-2" onClick={() => setServes(serves + 1)} aria-label="More serves"><Plus size={14} /></button>
+              </div>
+            }
+          >
+            <ul className="divide-y divide-line">
+              {r.ingredients.map((i, n) => (
+                <li key={n}>
+                  <label className="flex cursor-pointer items-baseline gap-3 py-2.5">
+                    <input type="checkbox" className="h-4 w-4 translate-y-0.5 accent-[var(--olive)]" checked={have.has(n)}
+                      onChange={() => setHave((s) => { const x = new Set(s); if (x.has(n)) x.delete(n); else x.add(n); return x; })} />
+                    <span className={cn("w-20 shrink-0 text-right font-medium tabular-nums", have.has(n) && "text-muted line-through")}>{scaleQty(i.qty, i.unit, factor)}</span>
+                    <span className={cn(have.has(n) && "text-muted line-through")}>{i.name}{i.note && <span className="text-muted">, {i.note}</span>}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            {r.est_cost != null && <p className="mt-3 text-right text-xs text-muted">≈ {money(r.est_cost * factor)} of ingredients</p>}
+          </Section>
 
-      <Bench className="space-y-3">
-        <h2 className="text-2xl">How was it?</h2>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} aria-label={`${n} stars`} onClick={() => { setRating(n); start(() => setFeedback(r.id, { rating: n, cooked: !fb?.cooked_count && rating === 0 })); flash("Thanks — noted for future plans"); }}>
-              <Star size={28} strokeWidth={1.2} className={cn(n <= rating ? "fill-olive text-olive" : "text-line-strong")} />
-            </button>
-          ))}
+          {r.kcal != null && (
+            <Section title="Nutrition" action={<span className="text-[13px] text-muted">per serve</span>}>
+              <div className="grid grid-cols-4 divide-x divide-line text-center">
+                {[["kcal", r.kcal], ["protein", `${r.protein_g}g`], ["carbs", `${r.carbs_g}g`], ["fat", `${r.fat_g}g`]].map(([l, v]) => (
+                  <div key={l} className="py-1"><div className="text-2xl font-light">{v}</div><div className="eyebrow">{l}</div></div>
+                ))}
+              </div>
+            </Section>
+          )}
         </div>
-        <textarea className="field min-h-16 text-sm" placeholder="Notes for next time (e.g. 'double the garlic')" defaultValue={fb?.notes ?? ""}
-          onBlur={(e) => start(() => setFeedback(r.id, { notes: e.target.value }))} />
-        <div className="flex justify-between">
-          <Button variant="ghost" size="sm" className="text-clay" onClick={() => start(async () => { await setFeedback(r.id, { never_again: true, favourite: false }); flash("Won't suggest this again"); })}>
-            <Ban size={14} /> Never again
-          </Button>
-          <Button variant="ghost" size="sm" className="text-muted" onClick={() => confirm("Delete this recipe?") && start(() => deleteRecipe(r.id))}><Trash2 size={14} /> Delete</Button>
+
+        <div className="space-y-14 lg:col-span-7">
+          <Section title="Method">
+            <ol className="space-y-5">
+              {r.steps.map((s, n) => (
+                <li key={n} className="flex gap-5">
+                  <span className="w-6 shrink-0 text-[15px] leading-relaxed text-muted tabular-nums">{n + 1}</span>
+                  <p className="text-[16px] leading-relaxed">{s.text}{s.minutes ? <span className="ml-1 text-xs text-muted">({s.minutes} min)</span> : null}</p>
+                </li>
+              ))}
+            </ol>
+            {r.source_url && <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-6 block text-sm text-olive underline">Original recipe ↗</a>}
+          </Section>
+
+          <Section title="How was it?" className="space-y-4">
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} aria-label={`${n} stars`} onClick={() => { setRating(n); start(() => setFeedback(r.id, { rating: n, cooked: !fb?.cooked_count && rating === 0 })); flash("Thanks — noted for future plans"); }}>
+                  <Star size={28} strokeWidth={1.2} className={cn(n <= rating ? "fill-olive text-olive" : "text-line-strong")} />
+                </button>
+              ))}
+            </div>
+            <textarea className="field min-h-16 text-sm" placeholder="Notes for next time (e.g. 'double the garlic')" defaultValue={fb?.notes ?? ""}
+              onBlur={(e) => start(() => setFeedback(r.id, { notes: e.target.value }))} />
+            <div className="flex justify-between">
+              <Button variant="ghost" size="sm" className="text-clay" onClick={() => start(async () => { await setFeedback(r.id, { never_again: true, favourite: false }); flash("Won't suggest this again"); })}>
+                <Ban size={14} /> Never again
+              </Button>
+              <Button variant="ghost" size="sm" className="text-muted" onClick={() => confirm("Delete this recipe?") && start(() => deleteRecipe(r.id))}><Trash2 size={14} /> Delete</Button>
+            </div>
+          </Section>
         </div>
-      </Bench>
+      </div>
 
       <Sheet open={!!qr} onClose={() => setQr(null)} title="Scan with your phone">
         {/* eslint-disable-next-line @next/next/no-img-element */}

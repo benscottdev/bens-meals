@@ -43,3 +43,14 @@ it("prettyQty", () => {
   expect(prettyQty(1500, "g")).toBe("1.5 kg");
   expect(prettyQty(250, "ml")).toBe("250 ml");
 });
+
+import { dayOf, weekStart } from "@/lib/types";
+
+describe("week dates", () => {
+  it("finds the Monday for any day", () => {
+    expect(weekStart("2026-10-13")).toBe("2026-10-12"); // Tue
+    expect(weekStart("2026-10-12")).toBe("2026-10-12"); // Mon
+    expect(weekStart("2026-10-18")).toBe("2026-10-12"); // Sun
+    expect(dayOf("2026-10-18")).toBe("sun");
+  });
+});

@@ -31,7 +31,7 @@ export default function ResetPassword() {
           e.preventDefault(); setBusy(true);
           const { error } = await createClient().auth.updateUser({ password });
           setBusy(false);
-          if (error) setError(error.message); else router.replace("/plan");
+          if (error) setError(error.message); else router.replace("/");
         }}>
           <input type="password" required minLength={8} autoComplete="new-password" className="field" value={password} onChange={(e) => setPassword(e.target.value)} />
           <Button className="w-full" disabled={busy}>Save password</Button>

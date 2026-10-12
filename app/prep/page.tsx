@@ -19,7 +19,7 @@ export default async function PrepPage() {
         <PrepView planId={plan!.id} prep={prep.timeline as Prep} />
       ) : (
         <Empty title={settings.prep_day ? "Nothing to prep this week" : "No prep day set"}>
-          <p className="max-w-xs text-sm text-muted">
+          <p className="text-sm text-muted">
             {settings.prep_day ? "None of this week's meals need batch cooking. Turn on prep lunches in Kitchen settings to batch weekday lunches." : "Pick a prep day in Kitchen settings and the next plan will include a combined cooking timeline."}
           </p>
           <Link href="/settings"><Button variant="outline" size="sm">Kitchen settings</Button></Link>

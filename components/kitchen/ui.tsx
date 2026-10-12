@@ -79,12 +79,30 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
   );
 }
 
+/**
+ * A titled page section: strong rule above, real heading, optional action on the right. Use these to split every
+ * page into clear blocks instead of bare eyebrow labels.
+ */
+export function Section({ title, action, children, className, id }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; id?: string }) {
+  return (
+    <section id={id} className={cn("border-t border-line-strong pt-6", className)}>
+      {title && (
+        <div className="mb-6 flex items-baseline justify-between gap-4">
+          <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">{title}</h2>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
 export function PageTitle({ children, sub, action }: { children: ReactNode; sub?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="mb-8">
+    <div className="mb-10 md:mb-14">
       {sub && <p className="eyebrow mb-3">{sub}</p>}
       <div className="flex items-end justify-between gap-3">
-        <h1 className="text-[2.6rem] leading-[1.05]">{children}</h1>
+        <h1 className="text-[2.6rem] leading-[1.05] md:text-[3.4rem]">{children}</h1>
         {action}
       </div>
     </div>

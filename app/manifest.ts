@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Ben's Meals",
     short_name: "Meals",
     description: "Weekly meals, recipes and the shopping list — sorted.",
-    start_url: "/plan",
+    start_url: "/",
     display: "standalone",
     background_color: "#f5f2ec",
     theme_color: "#f5f2ec",

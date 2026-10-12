@@ -1,5 +1,6 @@
 // Development-only design preview with sample data (no sign-in needed). 404s in production.
 import { notFound } from "next/navigation";
+import { Dashboard } from "@/components/home/Dashboard";
 import { PageSkeleton } from "@/components/kitchen/Skeleton";
 import { PageTitle } from "@/components/kitchen/ui";
 import { WeekPlanner } from "@/components/plan/WeekPlanner";
@@ -58,6 +59,13 @@ export default async function Dev({ searchParams }: { searchParams: Promise<{ s?
   if (process.env.NODE_ENV === "production") notFound();
   const s = (await searchParams).s ?? "plan";
   const settings = { ...DEFAULT_SETTINGS, weekly_budget: 120, onboarded: true };
+  if (s === "home") return (
+    <Dashboard settings={settings} today="2026-10-06" nowMins={16 * 60 + 40} plan={plan} slots={slots} nextPlanned={false} hasPrep
+      shopping={items.map((i) => ({ checked: i.checked, have_it: i.have_it }))}
+      recent={[{ week_start: "2026-09-28", budget: 120, est_total: 118.3, actual_total: 124.1 }, { week_start: "2026-09-21", budget: 120, est_total: 109.9, actual_total: null }]}
+      reminders={[{ id: "a", title: "Start dinner: Lamb kofta bowls", fire_at: "2026-10-06T07:00:00Z", url: "/plan" }, { id: "b", title: "Defrost the lamb mince", fire_at: "2026-10-07T09:00:00Z", url: "/plan" }]}
+    />
+  );
   if (s === "loading") return <PageSkeleton title="This week" variant="week" />;
   if (s === "recipe") return <RecipeView r={recipes[0]} fb={null} />;
   if (s === "shop") return (<><PageTitle sub="Week of 5 October">Shopping</PageTitle><ShoppingList plan={plan} items={items} /></>);

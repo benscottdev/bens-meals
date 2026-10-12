@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { applySwap, clearSlot, deleteSavedWeek, loadSavedWeek, saveWeek, setSlotRecipe, setWeekServings, suggestSwaps, toggleLock, toggleSkip } from "@/app/actions";
 import { DrumstickRating } from "@/components/kitchen/Drumsticks";
 import { Sheet } from "@/components/kitchen/Sheet";
-import { Arrow, Button, Chip, RecipeStats, cn } from "@/components/kitchen/ui";
+import { Arrow, Button, Chip, RecipeStats, Section, cn } from "@/components/kitchen/ui";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import type { RecipeOut } from "@/lib/claude/schemas";
 import type { SavedWeek } from "@/lib/data";
@@ -14,6 +14,8 @@ import { createClient } from "@/lib/supabase/client";
 import { DAY_LABEL, DAYS, MEAL_LABEL, MEALS, money, type Day, type MealPlan, type MealType, type PlanSlot, type Recipe, type Settings } from "@/lib/types";
 
 type Props = { weekStart: string; plan: MealPlan | null; slots: PlanSlot[]; settings: Settings; favourites: Recipe[]; savedWeeks: SavedWeek[] };
+
+const DAY_NAME: Record<Day, string> = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
 
 function dateLabel(weekStart: string, day: Day) {
   const d = new Date(`${weekStart}T12:00:00`);
@@ -71,7 +73,7 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
 
   if (!plan || (plan.status === "failed" && !slots.length)) {
     return (
-      <div className="space-y-6 border-t border-line pt-8">
+      <div className="space-y-6 border-t border-line-strong pt-8">
         <h2 className="text-3xl">Nothing planned yet.</h2>
         <p className="text-muted">
           {money(settings.weekly_budget)} budget · {mealCount} meals · {settings.plan_mode === "find" ? "real recipes from the web" : "original recipes"}
@@ -110,7 +112,9 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
       )}
       {plan.status === "failed" && <p className="mb-6 text-sm text-clay">Regenerating failed: {plan.progress?.message}</p>}
 
-      <section className="border-t border-line pt-5">
+      <Section title="Budget & plan">
+        <div className="grid gap-x-16 gap-y-6 lg:grid-cols-12">
+        <div className="lg:col-span-5">
         <div className="flex items-baseline justify-between gap-4">
           <p className="text-[2rem] font-light leading-none tabular-nums">
             {money(est)} <span className="text-[1rem] text-muted">of {money(budget)}</span>
@@ -123,9 +127,12 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
           <div className={cn("h-px", diff < 0 ? "bg-clay" : "bg-ink")} style={{ width: `${Math.min(100, (100 * est) / budget)}%` }} />
         </div>
         <CookingFor planId={plan.id} slots={slots} disabled={generating} />
-        {plan.strategy && <p className="mt-5 text-[14px] leading-relaxed text-muted">{plan.strategy}</p>}
+        </div>
+        <div className="lg:col-span-7">
+        {plan.strategy && <p className="text-[15px] leading-relaxed text-muted">{plan.strategy}</p>}
         <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-3">
           <Link href="/shop"><Arrow>Shopping list</Arrow></Link>
+          {settings.prep_day && <Link href="/prep"><Arrow>Prep run sheet</Arrow></Link>}
           <button onClick={() => setSaving(true)} disabled={generating} className="disabled:opacity-40"><Arrow>Save week</Arrow></button>
           <button onClick={() => setAdjust(true)} disabled={generating} className="disabled:opacity-40"><Arrow>Adjust & regenerate</Arrow></button>
           <button onClick={generate} disabled={generating} className="text-[14px] text-muted underline-offset-4 hover:text-ink hover:underline disabled:opacity-40">
@@ -138,16 +145,19 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
           )}
         </div>
         {error && <p className="mt-3 text-sm text-clay">{error}</p>}
-      </section>
+        </div>
+        </div>
+      </Section>
 
-      <div className="mt-10">
+      <Section title="Meals" className="mt-14">
+      <div className="grid gap-x-10 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {DAYS.map((day) => {
           const meals = MEALS.filter((m) => settings.meal_grid[day]?.includes(m) || slotAt(day, m));
           if (!meals.length) return null;
           return (
-            <section key={day} className="grid grid-cols-[4.5rem_1fr] gap-x-4 border-t border-line py-5">
-              <div>
-                <h2 className="text-[17px] font-normal tracking-normal">{DAY_LABEL[day]}</h2>
+            <section key={day} className="border-t border-line pt-5 pb-9">
+              <div className="mb-4 flex items-baseline justify-between">
+                <h3 className="text-[1.15rem] font-normal tracking-normal">{DAY_NAME[day]}</h3>
                 <p className="text-[12px] text-muted">{dateLabel(weekStart, day)}</p>
               </div>
               <ul className="space-y-5">
@@ -159,6 +169,7 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
           );
         })}
       </div>
+      </Section>
       {adjustSheet}
       <SaveWeekSheet open={saving} onClose={() => setSaving(false)} planId={plan.id} defaultName={`Week of ${dateLabel(weekStart, "mon")}`} />
       <SavedWeeksSheet open={library} onClose={() => setLibrary(false)} weeks={savedWeeks} weekStart={weekStart} replaces />

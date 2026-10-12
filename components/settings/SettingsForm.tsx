@@ -50,9 +50,9 @@ export function SettingsForm({ initial, onboarding = false, inSheet = false, sub
   const { onboarded, ...patch } = s;
   void onboarded;
   return (
-    <div className="space-y-8">
-      <section className="space-y-5 border-t border-line pt-6">
-        <h2 className="text-2xl">Budget & shop</h2>
+    <div className={cn("grid gap-x-16 gap-y-12", !inSheet && "lg:grid-cols-2")}>
+      <section className="space-y-5 border-t border-line-strong pt-6">
+        <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">Budget & shop</h2>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Weekly budget (AUD)">
             <input className="field" type="number" inputMode="decimal" min={20} step={5} value={s.weekly_budget} onChange={(e) => set("weekly_budget", Number(e.target.value))} />
@@ -73,9 +73,9 @@ export function SettingsForm({ initial, onboarding = false, inSheet = false, sub
         </Field>
       </section>
 
-      <section className="space-y-4 border-t border-line pt-6">
+      <section className="space-y-4 border-t border-line-strong pt-6">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-2xl">Meals you need</h2>
+          <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">Meals you need</h2>
           <span className="text-sm text-muted">{count} a week</span>
         </div>
         <div className="overflow-x-auto">
@@ -116,8 +116,8 @@ export function SettingsForm({ initial, onboarding = false, inSheet = false, sub
         </Field>
       </section>
 
-      <section className="space-y-5 border-t border-line pt-6">
-        <h2 className="text-2xl">How you cook</h2>
+      <section className="space-y-5 border-t border-line-strong pt-6">
+        <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">How you cook</h2>
         <Field label={`Max weeknight cook time: ${s.max_weeknight_minutes} min`}>
           <input type="range" min={15} max={120} step={5} value={s.max_weeknight_minutes} onChange={(e) => set("max_weeknight_minutes", Number(e.target.value))} className="w-full accent-[var(--olive)]" />
         </Field>
@@ -131,8 +131,8 @@ export function SettingsForm({ initial, onboarding = false, inSheet = false, sub
         <Field label="Cuisines you love" hint="Leave empty for anything."><ChipToggle options={CUISINES} value={s.cuisines} onChange={(v) => set("cuisines", v)} allowCustom /></Field>
       </section>
 
-      <section className="space-y-5 border-t border-line pt-6">
-        <h2 className="text-2xl">Meal prep</h2>
+      <section className="space-y-5 border-t border-line-strong pt-6">
+        <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">Meal prep</h2>
         <Field label="Prep day" hint="Get a combined cooking timeline and containers plan for batch meals.">
           <div className="flex flex-wrap gap-2">
             {[null, ...DAYS].map((d) => (
@@ -151,8 +151,8 @@ export function SettingsForm({ initial, onboarding = false, inSheet = false, sub
         )}
       </section>
 
-      <section className="space-y-5 border-t border-line pt-6">
-        <h2 className="text-2xl">Recipes</h2>
+      <section className="space-y-5 border-t border-line-strong pt-6">
+        <h2 className="text-[1.35rem] font-normal tracking-[-0.015em]">Recipes</h2>
         <Field label="Where recipes come from">
           <div className="grid grid-cols-2 gap-2">
             {([["generate", "Claude creates them", "Fast, tailored to everything above"], ["find", "Find real recipes", "Searches the web, keeps the source link"]] as const).map(([k, t, d]) => (
@@ -168,7 +168,7 @@ export function SettingsForm({ initial, onboarding = false, inSheet = false, sub
         </Field>
       </section>
 
-      <div className={cn("sticky z-10 -mx-1 bg-paper/95 px-1 py-3 backdrop-blur", inSheet ? "-bottom-5" : "bottom-16")}>
+      <div className={cn("sticky z-10 -mx-1 bg-paper/95 px-1 py-3 backdrop-blur", inSheet ? "-bottom-5" : "bottom-16 md:bottom-0 lg:col-span-2")}>
         <Button size="lg" className="w-full" disabled={pending} onClick={() => start(async () => { await saveSettings(patch, onboarding); setSaved(true); await onSaved?.(); })}>
           {pending ? "Saving…" : submitLabel ?? (onboarding ? "Start planning" : saved ? "Saved" : "Save settings")}
         </Button>

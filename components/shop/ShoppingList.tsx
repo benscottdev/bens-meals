@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { addExtraItem, optimiseList, setActualTotal, setItemPrice, toggleItem } from "@/app/actions";
 import { Sheet } from "@/components/kitchen/Sheet";
-import { Button, cn } from "@/components/kitchen/ui";
+import { Button, Section, cn } from "@/components/kitchen/ui";
 import { prettyQty, storeSearchUrl } from "@/lib/shopping/aggregate";
 import { createClient } from "@/lib/supabase/client";
 import { AISLES, STORE_LABEL, money, type MealPlan, type ShoppingItem } from "@/lib/types";
@@ -64,8 +64,8 @@ export function ShoppingList({ plan, items: initial }: { plan: MealPlan; items: 
   };
 
   return (
-    <div className="space-y-10">
-      <section className="space-y-4 border-t border-line pt-5">
+    <div className="space-y-14">
+      <Section title="Summary" className="space-y-4">
         <div className="flex items-end justify-between">
           <div>
             <div className="eyebrow">{STORE_LABEL[plan.store]} · {left} to get</div>
@@ -96,14 +96,16 @@ export function ShoppingList({ plan, items: initial }: { plan: MealPlan; items: 
           <p className="text-[13px] text-olive">Already have {owned.length} item{owned.length > 1 ? "s" : ""} · {money(saved)} off the total</p>
         )}
         <p className="text-xs text-muted">Tap <span className="text-ink">Have</span> on anything already in the cupboard — it stays on the list but comes off the total. Tap a price to correct it; it&apos;s remembered next week.</p>
-      </section>
+      </Section>
 
+      <Section title="List">
+      <div className="gap-x-12 md:columns-2 2xl:columns-3">
       {groups.map(([aisle, list]) => {
         const shown = list.filter((i) => !(hideDone && i.checked));
         if (!shown.length) return null;
         return (
-          <section key={aisle}>
-            <h2 className="eyebrow mb-1">{aisle}</h2>
+          <section key={aisle} className="mb-10 break-inside-avoid">
+            <h3 className="mb-2 text-[1.05rem] font-normal tracking-normal">{aisle}</h3>
             <ul className="divide-y divide-line border-y border-line">
               {shown.map((i) => {
                 const link = storeSearchUrl(plan.store, i.name);
@@ -134,11 +136,13 @@ export function ShoppingList({ plan, items: initial }: { plan: MealPlan; items: 
           </section>
         );
       })}
+      </div>
 
       <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (!extra.trim()) return; start(async () => { await addExtraItem(plan.id, extra.trim()); setExtra(""); router.refresh(); }); }}>
         <input className="field" placeholder="Add something else (toilet paper, coffee…)" value={extra} onChange={(e) => setExtra(e.target.value)} />
         <Button variant="outline" aria-label="Add item"><Plus size={16} /></Button>
       </form>
+      </Section>
 
       <Sheet open={!!priceFor} onClose={() => setPriceFor(null)} title={priceFor?.name ?? ""}>
         {priceFor && (

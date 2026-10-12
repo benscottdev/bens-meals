@@ -137,18 +137,30 @@ export type ShoppingItem = {
   recipe_ids: string[];
 };
 
-/** Monday of the week containing `d` (local time), as YYYY-MM-DD. */
-export function weekStart(d = new Date()): string {
-  const x = new Date(d);
-  const dow = (x.getDay() + 6) % 7;
-  x.setDate(x.getDate() - dow);
-  return x.toLocaleDateString("en-CA");
+/** All dates are Ben's wall clock, not the server's (Vercel runs in UTC). */
+export const HOME_TZ = "Australia/Sydney";
+
+/** Today as YYYY-MM-DD in `tz`. */
+export function todayISO(tz = HOME_TZ): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
+const addDays = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Day key (mon…sun) of a YYYY-MM-DD date. */
+export const dayOf = (iso: string): Day => DAYS[(new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7];
+
+/** Monday of the week containing `iso` (default: today at home), as YYYY-MM-DD. */
+export function weekStart(iso = todayISO()): string {
+  return addDays(iso, -DAYS.indexOf(dayOf(iso)));
 }
 
 export function nextWeekStart(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return weekStart(d);
+  return addDays(weekStart(), 7);
 }
 
 export const money = (n: number | null | undefined) =>

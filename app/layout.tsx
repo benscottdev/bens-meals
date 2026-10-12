@@ -20,8 +20,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en-AU">
       <body className={`${grotesk.variable} antialiased`}>
-        <main className="safe-bottom mx-auto max-w-2xl px-6 pt-[calc(env(safe-area-inset-top)+2.5rem)]">{children}</main>
         <BottomNav />
+        <main className="safe-bottom px-5 pt-[calc(env(safe-area-inset-top)+2.5rem)] sm:px-8 md:pt-12 lg:px-12 xl:px-16">{children}</main>
         <ServiceWorker />
       </body>
     </html>

@@ -36,6 +36,6 @@ export async function GET(req: NextRequest) {
       : (error?.message ?? "That link didn't work — request a new one."));
   }
   const recovery = type === "recovery" || isRecovery(data.session.access_token);
-  const next = recovery ? "/reset" : url.searchParams.get("next") ?? "/plan";
+  const next = recovery ? "/reset" : url.searchParams.get("next") ?? "/";
   return NextResponse.redirect(new URL(next, origin));
 }

@@ -26,7 +26,7 @@ export async function saveSettings(patch: Partial<Settings>, finishOnboarding = 
   });
   if (error) throw new Error(error.message);
   revalidatePath("/", "layout");
-  if (finishOnboarding) redirect("/plan");
+  if (finishOnboarding) redirect("/");
 }
 
 export async function saveEater(e: Partial<Eater> & { name: string }) {
