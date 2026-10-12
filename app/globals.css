@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
+/* Modern minimal: warm paper, ink, one olive accent, terracotta for warnings. No textures. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --paper: #f5f2ec;
+  --surface: #faf8f4;
+  --line: #e2ddd3;
+  --line-strong: #cfc8bb;
+  --ink: #252321;
+  --muted: #8a857c;
+  --olive: #5b6142;
+  --olive-soft: #e9e8dd;
+  --clay: #b5654a;
+  --sand: #ece6da;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-olive: var(--olive);
+  --color-olive-soft: var(--olive-soft);
+  --color-clay: var(--clay);
+  --color-sand: var(--sand);
+  --font-sans: var(--font-grotesk);
+  --font-display: var(--font-grotesk);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-grotesk), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "tnum";
+  -webkit-tap-highlight-color: transparent;
 }
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-grotesk), system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Section: open, separated by a single hairline — no boxes. */
+.bench {
+  border-top: 1px solid var(--line);
+}
+
+/* Outline control. */
+.steel {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+}
+
+.timber {
+  background: rgb(245 242 236 / 0.92);
+  backdrop-filter: saturate(1.2) blur(12px);
+  border-top: 1px solid var(--line);
+}
+
+.field {
+  width: 100%;
+  border-radius: 2px;
+  padding: 0.7rem 0.85rem;
+  font-size: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field:focus { border-color: var(--ink); }
+
+.brass-rule { height: 1px; background: var(--line); }
+
+.safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 6rem); }
+
+@keyframes breathe { 0%, 100% { opacity: 0.35 } 50% { opacity: 1 } }
+.simmer { animation: breathe 1.8s ease-in-out infinite; }
