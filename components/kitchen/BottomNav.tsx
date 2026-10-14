@@ -13,7 +13,7 @@ const TABS = [
 
 export function BottomNav() {
   const path = usePathname();
-  if (path.startsWith("/login") || path.startsWith("/reset") || path.endsWith("/cook")) return null;
+  if (path.startsWith("/login") || path.startsWith("/reset") || path.startsWith("/s/") || path.endsWith("/cook")) return null;
   return (
     // Phones: tab bar along the bottom. Wider screens: a top bar with the wordmark.
     <nav className="timber fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] md:sticky md:top-0 md:bottom-auto md:border-t-0 md:border-b md:border-line md:pb-0">

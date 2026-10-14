@@ -101,3 +101,13 @@ export function storeSearchUrl(store: Store, name: string): string | null {
       return null; // ALDI has no online shop
   }
 }
+
+/** Scale a recipe quantity and print it nicely: 1500 g → 1.5 kg, 0.5 cup → ½ cup. */
+export function scaleQty(qty: number, unit: string, factor: number) {
+  const q = qty * factor;
+  if (["g", "ml"].includes(unit)) return prettyQty(Math.round(q), unit);
+  const nice = Math.round(q * 4) / 4;
+  const frac: Record<string, string> = { "0.25": "¼", "0.5": "½", "0.75": "¾" };
+  const whole = Math.floor(nice), part = (nice - whole).toFixed(2).replace(/0$/, "");
+  return `${whole || ""}${frac[part] ?? (part !== "0.0" && part !== "0" ? part.slice(1) : "")} ${unit}`.trim();
+}

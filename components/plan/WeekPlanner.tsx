@@ -1,13 +1,14 @@
 "use client";
-import { Lock, Minus, MoreHorizontal, Plus } from "lucide-react";
+import { GripVertical, Lock, Minus, MoreHorizontal, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { applySwap, clearSlot, deleteSavedWeek, loadSavedWeek, saveWeek, setSlotRecipe, setWeekServings, suggestSwaps, toggleLock, toggleSkip } from "@/app/actions";
+import { applySwap, clearSlot, deleteSavedWeek, loadSavedWeek, moveSlot, saveWeek, setSlotRecipe, setWeekServings, suggestSwaps, toggleLock, toggleSkip } from "@/app/actions";
 import { DrumstickRating } from "@/components/kitchen/Drumsticks";
 import { Sheet } from "@/components/kitchen/Sheet";
 import { Arrow, Button, Chip, RecipeStats, Section, cn } from "@/components/kitchen/ui";
 import { SettingsForm } from "@/components/settings/SettingsForm";
+import { ShareSheet } from "@/components/share/ShareSheet";
 import type { RecipeOut } from "@/lib/claude/schemas";
 import type { SavedWeek } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
@@ -29,9 +30,17 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
   const [adjust, setAdjust] = useState(false);
   const [saving, setSaving] = useState(false);
   const [library, setLibrary] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(plan?.progress);
   const generating = plan?.status === "generating" || starting;
+  // Rearranging: local copy so moves show instantly; drag on desktop, tap-to-swap anywhere.
+  const [localSlots, setLocalSlots] = useState(slots);
+  useEffect(() => setLocalSlots(slots), [slots]);
+  const [rearrange, setRearrange] = useState(false);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [, startMove] = useTransition();
 
   // Follow generation progress until it finishes, then reload the server data.
   useEffect(() => {
@@ -91,10 +100,42 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
     );
   }
 
-  const slotAt = (day: Day, meal: MealType) => slots.find((s) => s.day === day && s.meal_type === meal);
+  const slotAt = (day: Day, meal: MealType) => localSlots.find((s) => s.day === day && s.meal_type === meal);
+  const moveTo = (fromId: string, toDay: Day, toMeal: MealType) => {
+    const a = localSlots.find((s) => s.id === fromId);
+    if (!a || (a.day === toDay && a.meal_type === toMeal)) return;
+    const b = slotAt(toDay, toMeal);
+    setLocalSlots((xs) => xs.map((s) =>
+      s.id === a.id ? { ...s, day: toDay, meal_type: toMeal } : b && s.id === b.id ? { ...s, day: a.day, meal_type: a.meal_type } : s));
+    setPicked(null);
+    startMove(async () => {
+      try { await moveSlot(plan.id, a.id, toDay, toMeal); router.refresh(); }
+      catch (e) { setError((e as Error).message); setLocalSlots(slots); }
+    });
+  };
+  const arrangeFor = (day: Day, meal: MealType, slot?: PlanSlot): Arrange => {
+    const key = `${day}|${meal}`;
+    return {
+      mode: rearrange,
+      picked: !!slot && picked === slot.id,
+      over: dragOver === key,
+      onTap: () => {
+        if (picked && (!slot || picked !== slot.id)) moveTo(picked, day, meal);
+        else setPicked(slot && picked !== slot.id ? slot.id : null);
+      },
+      onMove: (toDay, toMeal) => slot && moveTo(slot.id, toDay, toMeal),
+      drop: {
+        onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOver !== key) setDragOver(key); },
+        onDragLeave: () => setDragOver((k) => (k === key ? null : k)),
+        onDrop: (e) => { e.preventDefault(); setDragOver(null); const id = e.dataTransfer.getData("text/plain"); if (id) moveTo(id, day, meal); },
+      },
+    };
+  };
+  const targets = DAYS.flatMap((d) => MEALS.filter((m) => settings.meal_grid[d]?.includes(m) || slotAt(d, m))
+    .map((m) => ({ day: d, meal: m, title: slotAt(d, m)?.recipe?.title ?? null })));
   // Serves to cook per recipe = everyone eating it across the week (so leftovers get cooked too).
   const cookServes = new Map<string, number>();
-  slots.forEach((s) => { if (s.recipe_id && !s.skipped) cookServes.set(s.recipe_id, (cookServes.get(s.recipe_id) ?? 0) + Number(s.servings)); });
+  localSlots.forEach((s) => { if (s.recipe_id && !s.skipped) cookServes.set(s.recipe_id, (cookServes.get(s.recipe_id) ?? 0) + Number(s.servings)); });
   const est = Number(plan.est_total ?? 0);
   const budget = Number(plan.budget);
   const diff = budget - est;
@@ -133,6 +174,7 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
         <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-3">
           <Link href="/shop"><Arrow>Shopping list</Arrow></Link>
           {settings.prep_day && <Link href="/prep"><Arrow>Prep run sheet</Arrow></Link>}
+          <button onClick={() => setSharing(true)} disabled={generating} className="disabled:opacity-40"><Arrow>Share week</Arrow></button>
           <button onClick={() => setSaving(true)} disabled={generating} className="disabled:opacity-40"><Arrow>Save week</Arrow></button>
           <button onClick={() => setAdjust(true)} disabled={generating} className="disabled:opacity-40"><Arrow>Adjust & regenerate</Arrow></button>
           <button onClick={generate} disabled={generating} className="text-[14px] text-muted underline-offset-4 hover:text-ink hover:underline disabled:opacity-40">
@@ -149,7 +191,21 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
         </div>
       </Section>
 
-      <Section title="Meals" className="mt-14">
+      <Section
+        title="Meals"
+        className="mt-14"
+        action={
+          <button onClick={() => { setRearrange((r) => !r); setPicked(null); }} disabled={generating}
+            className={cn("rounded-full border px-3.5 py-1.5 text-[13px] disabled:opacity-40", rearrange ? "border-ink bg-ink text-paper" : "border-line-strong text-muted hover:border-ink hover:text-ink")}>
+            {rearrange ? "Done" : "Rearrange"}
+          </button>
+        }
+      >
+      <p className="-mt-3 mb-6 text-[13px] text-muted">
+        {rearrange
+          ? picked ? "Now tap where it should go — a filled spot swaps." : "Tap a meal, then tap the day it should move to."
+          : <>Drag meals between days to rearrange{" "}<span className="md:hidden">— or tap Rearrange</span>.</>}
+      </p>
       <div className="grid gap-x-10 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {DAYS.map((day) => {
           const meals = MEALS.filter((m) => settings.meal_grid[day]?.includes(m) || slotAt(day, m));
@@ -162,7 +218,7 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
               </div>
               <ul className="space-y-5">
                 {meals.map((m) => (
-                  <SlotRow key={m} plan={plan} day={day} meal={m} slot={slotAt(day, m)} favourites={favourites} cookServes={cookServes} />
+                  <SlotRow key={m} plan={plan} day={day} meal={m} slot={slotAt(day, m)} favourites={favourites} cookServes={cookServes} arrange={arrangeFor(day, m, slotAt(day, m))} targets={targets} />
                 ))}
               </ul>
             </section>
@@ -171,6 +227,7 @@ export function WeekPlanner({ weekStart, plan, slots, settings, favourites, save
       </div>
       </Section>
       {adjustSheet}
+      <ShareSheet open={sharing} onClose={() => setSharing(false)} target={{ planId: plan.id }} title={`Meals for the week of ${dateLabel(weekStart, "mon")}`} isWeek />
       <SaveWeekSheet open={saving} onClose={() => setSaving(false)} planId={plan.id} defaultName={`Week of ${dateLabel(weekStart, "mon")}`} />
       <SavedWeeksSheet open={library} onClose={() => setLibrary(false)} weeks={savedWeeks} weekStart={weekStart} replaces />
     </div>
@@ -284,8 +341,21 @@ function SavedWeeksSheet({ open, onClose, weeks, weekStart, replaces }: { open: 
   );
 }
 
-function SlotRow({ plan, day, meal, slot, favourites, cookServes }: { plan: MealPlan; day: Day; meal: MealType; slot?: PlanSlot; favourites: Recipe[]; cookServes: Map<string, number> }) {
+type Arrange = {
+  mode: boolean;
+  picked: boolean;
+  over: boolean;
+  onTap: () => void;
+  onMove: (day: Day, meal: MealType) => void;
+  drop: Pick<React.HTMLAttributes<HTMLLIElement>, "onDragOver" | "onDragLeave" | "onDrop">;
+};
+type Target = { day: Day; meal: MealType; title: string | null };
+
+function SlotRow({ plan, day, meal, slot, favourites, cookServes, arrange, targets }: {
+  plan: MealPlan; day: Day; meal: MealType; slot?: PlanSlot; favourites: Recipe[]; cookServes: Map<string, number>; arrange: Arrange; targets: Target[];
+}) {
   const [menu, setMenu] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [swap, setSwap] = useState(false);
   const [pick, setPick] = useState(false);
   const [pending, start] = useTransition();
@@ -293,8 +363,22 @@ function SlotRow({ plan, day, meal, slot, favourites, cookServes }: { plan: Meal
   const run = (fn: () => Promise<unknown>) => start(async () => { await fn(); setMenu(false); });
 
   return (
-    <li className={cn("flex items-start gap-3", pending && "opacity-40")}>
-      <div className="min-w-0 flex-1">
+    <li
+      {...arrange.drop}
+      draggable={!!slot && !arrange.mode}
+      onDragStart={(e) => { if (slot) { e.dataTransfer.setData("text/plain", slot.id); e.dataTransfer.effectAllowed = "move"; } }}
+      onClick={arrange.mode ? arrange.onTap : undefined}
+      className={cn(
+        "group -mx-2 flex items-start gap-2 rounded-[2px] px-2 py-1 transition-colors",
+        pending && "opacity-40",
+        slot && !arrange.mode && "md:cursor-grab md:active:cursor-grabbing",
+        arrange.mode && "cursor-pointer hover:bg-sand/60",
+        arrange.picked && "bg-sand ring-1 ring-ink",
+        arrange.over && "bg-sand",
+      )}
+    >
+      {slot && !arrange.mode && <GripVertical size={14} strokeWidth={1.4} className="mt-6 hidden shrink-0 text-line-strong group-hover:text-muted md:block" aria-hidden />}
+      <div className={cn("min-w-0 flex-1", arrange.mode && "pointer-events-none")}>
         <p className="eyebrow mb-1">{MEAL_LABEL[meal]}{slot?.leftover_of && " · leftovers"}</p>
         {slot?.skipped ? (
           <p className="text-muted">Eating out</p>
@@ -311,7 +395,7 @@ function SlotRow({ plan, day, meal, slot, favourites, cookServes }: { plan: Meal
         )}
       </div>
       {slot?.locked && <Lock size={14} strokeWidth={1.4} className="mt-6 text-muted" aria-label="Locked" />}
-      {slot && (
+      {slot && !arrange.mode && (
         <button className="mt-5 p-1 text-muted hover:text-ink" onClick={() => setMenu(true)} aria-label={`Options for ${DAY_LABEL[day]} ${meal}`}>
           <MoreHorizontal size={18} strokeWidth={1.4} />
         </button>
@@ -320,6 +404,7 @@ function SlotRow({ plan, day, meal, slot, favourites, cookServes }: { plan: Meal
       <Sheet open={menu} onClose={() => setMenu(false)} title={`${DAY_LABEL[day]} · ${MEAL_LABEL[meal]}`}>
         <ul className="divide-y divide-line border-y border-line text-[16px]">
           {[
+            { label: "Move to another day", onClick: () => { setMenu(false); setMoving(true); } },
             { label: "Swap for something else", onClick: () => { setMenu(false); setSwap(true); }, disabled: !!slot?.locked },
             { label: "Choose from favourites", onClick: () => { setMenu(false); setPick(true); } },
             { label: slot?.locked ? "Unlock" : "Lock — keep when regenerating", onClick: () => run(() => toggleLock(slot!.id, !slot!.locked)) },
@@ -334,6 +419,20 @@ function SlotRow({ plan, day, meal, slot, favourites, cookServes }: { plan: Meal
       </Sheet>
 
       {swap && slot && <SwapSheet slotId={slot.id} current={r?.title} onClose={() => setSwap(false)} />}
+
+      <Sheet open={moving} onClose={() => setMoving(false)} title={`Move ${r?.title ?? "this meal"}`}>
+        <p className="-mt-3 mb-5 text-sm text-muted">Pick where it should go. If something&apos;s already there, they swap.</p>
+        <ul className="divide-y divide-line border-y border-line">
+          {targets.filter((t) => !(t.day === day && t.meal === meal)).map((t) => (
+            <li key={`${t.day}|${t.meal}`}>
+              <button className="flex w-full items-baseline gap-4 py-3 text-left" onClick={() => { setMoving(false); arrange.onMove(t.day, t.meal); }}>
+                <span className="w-28 shrink-0 text-[14px]">{DAY_LABEL[t.day]} · {MEAL_LABEL[t.meal]}</span>
+                <span className="min-w-0 flex-1 truncate text-[14px] text-muted">{t.title ? `swap with ${t.title}` : "empty"}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Sheet>
 
       <Sheet open={pick} onClose={() => setPick(false)} title="Favourites">
         {favourites.length ? (

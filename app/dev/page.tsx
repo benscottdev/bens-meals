@@ -2,6 +2,7 @@
 import { notFound } from "next/navigation";
 import { Dashboard } from "@/components/home/Dashboard";
 import { PageSkeleton } from "@/components/kitchen/Skeleton";
+import { SharedWeekView } from "@/components/share/SharedWeekView";
 import { PageTitle } from "@/components/kitchen/ui";
 import { WeekPlanner } from "@/components/plan/WeekPlanner";
 import { RecipeView } from "@/components/recipes/RecipeView";
@@ -66,6 +67,7 @@ export default async function Dev({ searchParams }: { searchParams: Promise<{ s?
       reminders={[{ id: "a", title: "Start dinner: Lamb kofta bowls", fire_at: "2026-10-06T07:00:00Z", url: "/plan" }, { id: "b", title: "Defrost the lamb mince", fire_at: "2026-10-07T09:00:00Z", url: "/plan" }]}
     />
   );
+  if (s === "shared") return <SharedWeekView token="dev" week={{ kind: "week", plan, slots, items }} />;
   if (s === "loading") return <PageSkeleton title="This week" variant="week" />;
   if (s === "recipe") return <RecipeView r={recipes[0]} fb={null} />;
   if (s === "shop") return (<><PageTitle sub="Week of 5 October">Shopping</PageTitle><ShoppingList plan={plan} items={items} /></>);

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC = ["/login", "/reset", "/dev", "/auth", "/api/cron", "/api/calendar", "/manifest.webmanifest", "/sw.js", "/icons"];
+const PUBLIC = ["/login", "/reset", "/dev", "/s/", "/auth", "/api/cron", "/api/calendar", "/manifest.webmanifest", "/sw.js", "/icons"];
 
 export async function middleware(request: NextRequest) {
   const linkCode = request.nextUrl.searchParams.get("code");

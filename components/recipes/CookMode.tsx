@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { setFeedback } from "@/app/actions";
 import { Sheet } from "@/components/kitchen/Sheet";
 import type { Recipe } from "@/lib/types";
-import { scaleQty } from "./RecipeView";
+import { scaleQty } from "@/lib/shopping/aggregate";
 
 type RunningTimer = { step: number; label: string; endsAt: number };
 

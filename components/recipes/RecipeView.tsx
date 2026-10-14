@@ -1,31 +1,21 @@
 "use client";
-import { Ban, ChefHat, Heart, Minus, Plus, QrCode, Share2, Smartphone, Star, Trash2 } from "lucide-react";
+import { Ban, ChefHat, Heart, Minus, Plus, Share2, Smartphone, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
-import QRCode from "qrcode";
 import { useState, useTransition } from "react";
 import { deleteRecipe, sendToPhone, setFeedback } from "@/app/actions";
 import { DrumstickRating } from "@/components/kitchen/Drumsticks";
-import { Sheet } from "@/components/kitchen/Sheet";
+import { ShareSheet } from "@/components/share/ShareSheet";
 import { Button, Chip, RecipeStats, Section, cn } from "@/components/kitchen/ui";
-import { prettyQty } from "@/lib/shopping/aggregate";
+import { scaleQty } from "@/lib/shopping/aggregate";
 import { MEAL_LABEL, money, type Recipe } from "@/lib/types";
 
 type Feedback = { favourite: boolean; rating: number | null; never_again: boolean; notes: string | null; cooked_count: number } | null;
 
-export function scaleQty(qty: number, unit: string, factor: number) {
-  const q = qty * factor;
-  if (["g", "ml"].includes(unit)) return prettyQty(Math.round(q), unit);
-  const nice = Math.round(q * 4) / 4;
-  const frac: Record<string, string> = { "0.25": "¼", "0.5": "½", "0.75": "¾" };
-  const whole = Math.floor(nice), part = (nice - whole).toFixed(2).replace(/0$/, "");
-  return `${whole || ""}${frac[part] ?? (part !== "0.0" && part !== "0" ? part.slice(1) : "")} ${unit}`.trim();
-}
 
 /** `initialServes` comes from the week plan (?serves=) so quantities match who is eating, leftovers included. */
 export function RecipeView({ r, fb, initialServes }: { r: Recipe; fb: Feedback; initialServes?: number }) {
   const [serves, setServes] = useState(initialServes ?? r.servings);
   const [have, setHave] = useState<Set<number>>(new Set());
-  const [qr, setQr] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [fav, setFav] = useState(fb?.favourite ?? false);
   const [rating, setRating] = useState(fb?.rating ?? 0);
@@ -33,11 +23,7 @@ export function RecipeView({ r, fb, initialServes }: { r: Recipe; fb: Feedback; 
   const factor = serves / r.servings;
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
 
-  const share = async () => {
-    const url = location.href;
-    if (navigator.share) await navigator.share({ title: r.title, url }).catch(() => {});
-    else { await navigator.clipboard.writeText(url); flash("Link copied"); }
-  };
+  const [sharing, setSharing] = useState(false);
 
   return (
     <article>
@@ -62,7 +48,7 @@ export function RecipeView({ r, fb, initialServes }: { r: Recipe; fb: Feedback; 
             <Link href={`/recipes/${r.id}/cook${serves !== r.servings ? `?serves=${serves}` : ""}`} className="block">
               <Button size="lg" className="w-full"><ChefHat size={18} strokeWidth={1.5} /> Start cooking</Button>
             </Link>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={() => { setFav(!fav); start(() => setFeedback(r.id, { favourite: !fav })); }} aria-pressed={fav}>
                 <Heart size={18} strokeWidth={1.4} className={cn(fav && "fill-clay text-clay")} /> {fav ? "Loved" : "Love"}
               </Button>
@@ -70,10 +56,7 @@ export function RecipeView({ r, fb, initialServes }: { r: Recipe; fb: Feedback; 
                 const n = await sendToPhone(r.title, `/recipes/${r.id}/cook`, `${r.prep_minutes + r.cook_minutes} min · tap to start cooking`);
                 flash(n ? "Sent to your phone" : "Turn on notifications in Settings first");
               }}><Smartphone size={18} strokeWidth={1.4} /> Phone</Button>
-              <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={share}><Share2 size={18} strokeWidth={1.4} /> Share</Button>
-              <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={async () => setQr(await QRCode.toDataURL(location.href, { margin: 1, width: 280, color: { dark: "#252321", light: "#f5f2ec" } }))}>
-                <QrCode size={18} strokeWidth={1.4} /> QR
-              </Button>
+              <Button variant="outline" size="sm" className="flex-col !gap-1 !py-3" onClick={() => setSharing(true)}><Share2 size={18} strokeWidth={1.4} /> Share</Button>
             </div>
           </div>
 
@@ -145,11 +128,7 @@ export function RecipeView({ r, fb, initialServes }: { r: Recipe; fb: Feedback; 
           </Section>
         </div>
       </div>
-
-      <Sheet open={!!qr} onClose={() => setQr(null)} title="Scan with your phone">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {qr && <img src={qr} alt="QR code for this recipe" className="mx-auto" />}
-      </Sheet>
+      <ShareSheet open={sharing} onClose={() => setSharing(false)} target={{ recipeId: r.id }} title={r.title} />
       {toast && <div className="fixed inset-x-0 bottom-28 z-50 mx-auto w-fit rounded-[2px] bg-ink px-4 py-2 text-sm text-[#f5f2ec] shadow-lg">{toast}</div>}
     </article>
   );

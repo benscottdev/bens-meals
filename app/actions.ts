@@ -14,7 +14,7 @@ import { rebuildShoppingList } from "@/lib/plan/shopping";
 import { sendPush } from "@/lib/push";
 import { itemKey } from "@/lib/shopping/aggregate";
 import { requireUser } from "@/lib/supabase/server";
-import type { Eater, Settings } from "@/lib/types";
+import { DAYS, MEALS, type Day, type Eater, type MealType, type Settings } from "@/lib/types";
 
 // ------------------------------------------------------------------ settings & eaters
 
@@ -88,6 +88,58 @@ export async function setWeekServings(planId: string, serves: number) {
   if (error) throw new Error(error.message);
   await afterSlotChange(planId);
   revalidatePath("/prep");
+}
+
+/**
+ * Move a meal to another day/meal. If that spot is taken the two meals swap. Leftovers are re-linked so the earliest
+ * serving of a recipe is the one that gets cooked, and reminders follow the new days.
+ */
+export async function moveSlot(planId: string, slotId: string, toDay: string, toMeal: string) {
+  const { supabase, user } = await requireUser();
+  const [{ data: a }, { data: b }] = await Promise.all([
+    supabase.from("plan_slots").select("*").eq("id", slotId).single(),
+    supabase.from("plan_slots").select("*").eq("plan_id", planId).eq("day", toDay).eq("meal_type", toMeal).maybeSingle(),
+  ]);
+  if (!a) throw new Error("Meal not found");
+  if (a.day === toDay && a.meal_type === toMeal) return;
+
+  if (b) {
+    // Swap what's in the two spots (rows keep their day/meal, so the unique constraint is never hit).
+    const content = (s: typeof a) => ({ recipe_id: s.recipe_id, servings: s.servings, eater_ids: s.eater_ids, locked: s.locked, skipped: s.skipped, leftover_of: s.leftover_of });
+    const [r1, r2] = await Promise.all([
+      supabase.from("plan_slots").update(content(b)).eq("id", a.id),
+      supabase.from("plan_slots").update(content(a)).eq("id", b.id),
+    ]);
+    if (r1.error || r2.error) throw new Error((r1.error ?? r2.error)!.message);
+  } else {
+    const { error } = await supabase.from("plan_slots").update({ day: toDay, meal_type: toMeal }).eq("id", a.id);
+    if (error) throw new Error(error.message);
+  }
+
+  await relinkLeftovers(supabase, planId);
+  const [{ data: plan }, ctx] = await Promise.all([
+    supabase.from("meal_plans").select("week_start").eq("id", planId).single(),
+    loadContext(supabase, user.id),
+  ]);
+  if (plan) await scheduleReminders(supabase, user.id, planId, plan.week_start, ctx.settings);
+  revalidatePath("/plan");
+  revalidatePath("/");
+}
+
+/** For recipes eaten as leftovers, make the earliest slot the cook and point the rest at it. */
+async function relinkLeftovers(supabase: Awaited<ReturnType<typeof requireUser>>["supabase"], planId: string) {
+  const { data: slots } = await supabase.from("plan_slots").select("id, day, meal_type, recipe_id, leftover_of, skipped").eq("plan_id", planId);
+  const order = (s: { day: string; meal_type: string }) => DAYS.indexOf(s.day as Day) * 10 + MEALS.indexOf(s.meal_type as MealType);
+  const withLeftovers = new Set((slots ?? []).filter((s) => s.leftover_of && s.recipe_id).map((s) => s.recipe_id!));
+  const updates: PromiseLike<unknown>[] = [];
+  for (const rid of withLeftovers) {
+    const group = (slots ?? []).filter((s) => s.recipe_id === rid && !s.skipped).sort((x, y) => order(x) - order(y));
+    group.forEach((s, i) => {
+      const want = i === 0 ? null : group[0].id;
+      if (s.leftover_of !== want) updates.push(supabase.from("plan_slots").update({ leftover_of: want }).eq("id", s.id));
+    });
+  }
+  await Promise.all(updates);
 }
 
 export async function clearSlot(slotId: string, planId: string) {
@@ -368,6 +420,36 @@ export async function deleteSavedWeek(id: string) {
   const { supabase } = await requireUser();
   await supabase.from("saved_weeks").delete().eq("id", id);
   revalidatePath("/plan");
+}
+
+// ------------------------------------------------------------------ share links
+
+export type ShareLink = { token: string; include_list: boolean };
+
+/** Get (or make) the live read-only link for a week or a recipe. Reuses an existing link so the URL stays stable. */
+export async function getShareLink(target: { planId?: string; recipeId?: string }): Promise<ShareLink> {
+  const { supabase, user } = await requireUser();
+  const col = target.planId ? "plan_id" : "recipe_id";
+  const id = target.planId ?? target.recipeId;
+  if (!id) throw new Error("Nothing to share");
+  const { data: existing, error: readErr } = await supabase.from("share_links").select("token, include_list")
+    .eq(col, id).is("revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (readErr) throw new Error(readErr.message.includes("share_links") ? "Run the share-links SQL in Supabase first." : readErr.message);
+  if (existing) return existing;
+  const { data, error } = await supabase.from("share_links").insert({ user_id: user.id, [col]: id }).select("token, include_list").single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function setShareIncludesList(token: string, include: boolean) {
+  const { supabase } = await requireUser();
+  await supabase.from("share_links").update({ include_list: include }).eq("token", token);
+}
+
+/** Turn a link off for good. Sharing again makes a new URL. */
+export async function revokeShareLink(token: string) {
+  const { supabase } = await requireUser();
+  await supabase.from("share_links").update({ revoked_at: new Date().toISOString() }).eq("token", token);
 }
 
 // ------------------------------------------------------------------ prep, reminders, push
